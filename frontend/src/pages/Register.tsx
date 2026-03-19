@@ -7,6 +7,7 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -21,16 +22,26 @@ function Register() {
     }
 
     try {
+      setLoading(true);
+
       const res = await API.post("/register", {
         email,
         password
       });
 
-      alert("👉 Verify here:\n" + res.data.verify_link);
+      setLoading(false);
+
+      const link = res.data.verify_link;
+
+      // 🔥 AUTO OPEN VERIFY LINK
+      window.open(link, "_blank");
+
+      alert("Verification page opened ✅ Please verify your email");
 
     } catch (err) {
-      console.log(err.response);
-      alert(err.response?.data?.detail || "Registration failed ❌");
+      setLoading(false);
+      console.log(err?.response);
+      alert(err?.response?.data?.detail || "Registration failed ❌");
     }
   };
 
@@ -41,29 +52,41 @@ function Register() {
 
         <h2 className="text-2xl font-bold mb-5 text-center">Register</h2>
 
-        <input type="email" placeholder="Email"
+        <input
+          type="email"
+          placeholder="Email"
           className="w-full p-2 mb-3 border rounded"
-          onChange={(e)=>setEmail(e.target.value)} />
+          onChange={(e)=>setEmail(e.target.value)}
+        />
 
-        <input type="password" placeholder="Password"
+        <input
+          type="password"
+          placeholder="Password"
           className="w-full p-2 mb-3 border rounded"
-          onChange={(e)=>setPassword(e.target.value)} />
+          onChange={(e)=>setPassword(e.target.value)}
+        />
 
-        <input type="password" placeholder="Confirm Password"
+        <input
+          type="password"
+          placeholder="Confirm Password"
           className="w-full p-2 mb-4 border rounded"
-          onChange={(e)=>setConfirm(e.target.value)} />
+          onChange={(e)=>setConfirm(e.target.value)}
+        />
 
         <button
           onClick={handleRegister}
+          disabled={loading}
           className="w-full bg-blue-600 text-white p-2 rounded"
         >
-          Register
+          {loading ? "Registering..." : "Register"}
         </button>
 
         <p className="text-sm mt-3 text-center">
           Already have account?{" "}
-          <span className="text-blue-500 cursor-pointer"
-            onClick={()=>navigate("/")}>
+          <span
+            className="text-blue-500 cursor-pointer"
+            onClick={()=>navigate("/")}
+          >
             Login
           </span>
         </p>
