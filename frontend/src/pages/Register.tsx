@@ -4,8 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 function Register() {
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -28,10 +26,11 @@ function Register() {
         password
       });
 
-      alert("👉 Click to verify:\n" + res.data.verify_link);
+      alert("👉 Verify here:\n" + res.data.verify_link);
 
     } catch (err) {
-      alert("Registration failed ❌");
+      console.log(err.response);
+      alert(err.response?.data?.detail || "Registration failed ❌");
     }
   };
 
@@ -42,11 +41,17 @@ function Register() {
 
         <h2 className="text-2xl font-bold mb-5 text-center">Register</h2>
 
-        <input placeholder="Full Name" className="w-full p-2 mb-3 border rounded" onChange={(e)=>setName(e.target.value)} />
-        <input placeholder="Phone Number" className="w-full p-2 mb-3 border rounded" onChange={(e)=>setPhone(e.target.value)} />
-        <input type="email" placeholder="Email" className="w-full p-2 mb-3 border rounded" onChange={(e)=>setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" className="w-full p-2 mb-3 border rounded" onChange={(e)=>setPassword(e.target.value)} />
-        <input type="password" placeholder="Confirm Password" className="w-full p-2 mb-4 border rounded" onChange={(e)=>setConfirm(e.target.value)} />
+        <input type="email" placeholder="Email"
+          className="w-full p-2 mb-3 border rounded"
+          onChange={(e)=>setEmail(e.target.value)} />
+
+        <input type="password" placeholder="Password"
+          className="w-full p-2 mb-3 border rounded"
+          onChange={(e)=>setPassword(e.target.value)} />
+
+        <input type="password" placeholder="Confirm Password"
+          className="w-full p-2 mb-4 border rounded"
+          onChange={(e)=>setConfirm(e.target.value)} />
 
         <button
           onClick={handleRegister}
@@ -57,7 +62,8 @@ function Register() {
 
         <p className="text-sm mt-3 text-center">
           Already have account?{" "}
-          <span className="text-blue-500 cursor-pointer" onClick={()=>navigate("/")}>
+          <span className="text-blue-500 cursor-pointer"
+            onClick={()=>navigate("/")}>
             Login
           </span>
         </p>

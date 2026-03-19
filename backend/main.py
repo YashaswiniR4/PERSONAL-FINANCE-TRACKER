@@ -10,7 +10,7 @@ app = FastAPI()
 # ---------------- CORS ----------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # later restrict to vercel domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,23 +28,20 @@ class User(BaseModel):
     email: EmailStr
     password: str
 
-# ---------------- HELPER ----------------
-def serialize(doc):
-    doc["_id"] = str(doc["_id"])
-    return doc
-
 # ---------------- REGISTER ----------------
 @app.post("/register")
 def register(user: User):
 
-    existing = users_collection.find_one({"email": user.email})
+    email = user.email.lower()
+
+    existing = users_collection.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
     token = str(uuid.uuid4())
 
     new_user = {
-        "email": user.email,
+        "email": email,
         "password": user.password,
         "user_id": str(uuid.uuid4()),
         "verified": False,
@@ -78,7 +75,7 @@ def verify_email(token: str):
 @app.post("/login")
 def login(user: User):
 
-    db_user = users_collection.find_one({"email": user.email})
+    db_user = users_collection.find_one({"email": user.email.lower()})
 
     if not db_user or db_user["password"] != user.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -107,7 +104,7 @@ def add_transaction(data: dict):
 def get_all(user_id: str):
 
     data = list(transactions.find({"user_id": user_id}))
-    return [serialize(d) for d in data]
+    return [{**d, "_id": str(d["_id"])} for d in data]
 
 # ---------------- DELETE ----------------
 @app.delete("/delete/{id}")
