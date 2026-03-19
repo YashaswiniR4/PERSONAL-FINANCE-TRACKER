@@ -27,10 +27,12 @@ transactions = db["transactions"]
 users_collection = db["users"]
 
 # ---------------- EMAIL CONFIG ----------------
+import os
+
 conf = ConnectionConfig(
-    MAIL_USERNAME="yashaswinir483@gmail.com",
-    MAIL_PASSWORD="tvon xgqm ddtr pmyl",  # 🔴 PUT NEW PASSWORD
-    MAIL_FROM="yashaswinir483@gmail.com",
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+    MAIL_FROM=os.getenv("MAIL_FROM"),  # 🔥 MUST
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",
     MAIL_STARTTLS=True,
@@ -174,4 +176,4 @@ def update_transaction(id: str, data: dict):
         {"_id": ObjectId(id)},
         {"$set": data}
     )
-    return {"msg": "Updated"}
+    return {"msg": "Updated"}    
