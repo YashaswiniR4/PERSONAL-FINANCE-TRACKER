@@ -62,34 +62,37 @@ def serialize(doc):
 otp_storage = {}
 
 # ---------------- SEND OTP ----------------
+import os
+import requests
+
 @app.post("/send-otp")
-async def send_otp(data: OTPRequest):
+def send_otp(data: OTPRequest):
+
+    email = data.email.strip().lower()
+    otp = str(random.randint(1000, 9999))
+    otp_storage[email] = otp
+
     try:
-        email = data.email.strip().lower()
-
-        otp = str(random.randint(1000, 9999))
-        otp_storage[email] = otp
-
-        message = MessageSchema(
-            subject="Finance Tracker OTP",
-            recipients=[email],
-            body=f"Your OTP is {otp}",
-            subtype="plain"
+        res = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {os.getenv('RESEND_API_KEY')}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": "onboarding@resend.dev",
+                "to": email,
+                "subject": "Your OTP Code",
+                "html": f"<h2>Your OTP is {otp}</h2>"
+            }
         )
 
-        fm = FastMail(conf)
-        await fm.send_message(message)
+        print("RESEND RESPONSE:", res.text)
 
-        print("✅ OTP SENT:", otp)
-
-        # 🔥 RETURN OTP FOR DEBUG
-        return {
-            "msg": "OTP sent",
-            "otp": otp   # 🔥 IMPORTANT
-        }
+        return {"msg": "OTP sent"}
 
     except Exception as e:
-        print("❌ EMAIL ERROR:", e)
+        print("❌ ERROR:", e)
         raise HTTPException(status_code=500, detail="Failed to send OTP")
 
 # ---------------- VERIFY OTP ----------------

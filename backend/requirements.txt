@@ -4,3 +4,4 @@ pymongo
 python-dotenv
 fastapi-mail
 email-validator
+requests
