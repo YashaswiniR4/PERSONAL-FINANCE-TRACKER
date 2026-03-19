@@ -73,46 +73,31 @@ def send_otp(data: OTPRequest):
     otp_storage[email] = otp
 
     try:
+        api_key = os.getenv("RESEND_API_KEY")
+        print("API KEY:", api_key)  # DEBUG
+
         res = requests.post(
             "https://api.resend.com/emails",
             headers={
-                "Authorization": f"Bearer {os.getenv('RESEND_API_KEY')}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             },
             json={
                 "from": "onboarding@resend.dev",
                 "to": email,
-                "subject": "Your OTP Code",
-                "html": f"<h2>Your OTP is {otp}</h2>"
+                "subject": "OTP Code",
+                "html": f"<h1>Your OTP is {otp}</h1>"
             }
         )
 
-        print("RESEND RESPONSE:", res.text)
+        print("STATUS:", res.status_code)
+        print("RESPONSE:", res.text)
 
         return {"msg": "OTP sent"}
 
     except Exception as e:
         print("❌ ERROR:", e)
-        raise HTTPException(status_code=500, detail="Failed to send OTP")
-
-# ---------------- VERIFY OTP ----------------
-@app.post("/verify-otp")
-def verify_otp(data: VerifyOTP):
-
-    email = data.email.strip().lower()
-    entered_otp = data.otp.strip()
-
-    stored_otp = otp_storage.get(email)
-
-    print("Entered OTP:", entered_otp)
-    print("Stored OTP:", stored_otp)
-    print("Email:", email)
-
-    if stored_otp and stored_otp == entered_otp:
-        del otp_storage[email]  # 🔥 prevent reuse
-        return {"msg": "OTP verified"}
-
-    raise HTTPException(status_code=400, detail="Invalid OTP")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ---------------- REGISTER ----------------
 @app.post("/register")
