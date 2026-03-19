@@ -4,6 +4,7 @@ import { useState } from "react";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Verify from "./pages/Verify";
 
 const PrivateRoute = ({ children }: any) => {
   const token = localStorage.getItem("token");
@@ -25,6 +26,7 @@ function App() {
 
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify/:token" element={<Verify />} />
 
           <Route
             path="/dashboard"
