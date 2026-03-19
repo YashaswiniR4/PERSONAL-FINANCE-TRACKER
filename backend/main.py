@@ -4,9 +4,6 @@ from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
 from bson import ObjectId
 import uuid
-import random
-
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 
 app = FastAPI()
 
@@ -26,78 +23,15 @@ db = client["finance_db"]
 transactions = db["transactions"]
 users_collection = db["users"]
 
-# ---------------- EMAIL CONFIG ----------------
-import os
-
-conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_FROM=os.getenv("MAIL_FROM"),  # 🔥 MUST
-    MAIL_PORT=587,
-    MAIL_SERVER="smtp.gmail.com",
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
-
 # ---------------- MODELS ----------------
 class User(BaseModel):
     email: EmailStr
     password: str
 
-class OTPRequest(BaseModel):
-    email: EmailStr
-
-class VerifyOTP(BaseModel):
-    email: EmailStr
-    otp: str
-
 # ---------------- HELPER ----------------
 def serialize(doc):
     doc["_id"] = str(doc["_id"])
     return doc
-
-# ---------------- OTP STORAGE ----------------
-otp_storage = {}
-
-# ---------------- SEND OTP ----------------
-import os
-import requests
-
-@app.post("/send-otp")
-def send_otp(data: OTPRequest):
-
-    email = data.email.strip().lower()
-    otp = str(random.randint(1000, 9999))
-    otp_storage[email] = otp
-
-    try:
-        api_key = os.getenv("RESEND_API_KEY")
-        print("API KEY:", api_key)  # DEBUG
-
-        res = requests.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "from": "onboarding@resend.dev",
-                "to": email,
-                "subject": "OTP Code",
-                "html": f"<h1>Your OTP is {otp}</h1>"
-            }
-        )
-
-        print("STATUS:", res.status_code)
-        print("RESPONSE:", res.text)
-
-        return {"msg": "OTP sent"}
-
-    except Exception as e:
-        print("❌ ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))
 
 # ---------------- REGISTER ----------------
 @app.post("/register")
@@ -107,15 +41,38 @@ def register(user: User):
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
+    token = str(uuid.uuid4())
+
     new_user = {
         "email": user.email,
         "password": user.password,
-        "user_id": str(uuid.uuid4())
+        "user_id": str(uuid.uuid4()),
+        "verified": False,
+        "verify_token": token
     }
 
     users_collection.insert_one(new_user)
 
-    return {"msg": "User registered successfully"}
+    return {
+        "msg": "Verification link generated",
+        "verify_link": f"https://personal-finance-tracker-brown-nine.vercel.app/verify/{token}"
+    }
+
+# ---------------- VERIFY ----------------
+@app.get("/verify/{token}")
+def verify_email(token: str):
+
+    user = users_collection.find_one({"verify_token": token})
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid link")
+
+    users_collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"verified": True}}
+    )
+
+    return {"msg": "Email verified successfully"}
 
 # ---------------- LOGIN ----------------
 @app.post("/login")
@@ -125,6 +82,9 @@ def login(user: User):
 
     if not db_user or db_user["password"] != user.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not db_user.get("verified"):
+        raise HTTPException(status_code=403, detail="Please verify your email first")
 
     return {
         "token": "dummy_token",
@@ -164,4 +124,4 @@ def update_transaction(id: str, data: dict):
         {"_id": ObjectId(id)},
         {"$set": data}
     )
-    return {"msg": "Updated"}    
+    return {"msg": "Updated"}
